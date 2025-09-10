@@ -36,9 +36,10 @@ unsafe sealed class GDKGame : IGame
 
                 HWND window = HWND.Null; while ((window = FindWindowEx(HWND.Null, window, @class, null)) != HWND.Null)
                 {
-                    uint processId = 0; GetWindowThreadProcessId(window, &processId);
-                    var process = ProcessHandle.Open(processId);
+                    uint processId = 0;
+                    GetWindowThreadProcessId(window, &processId);
 
+                    var process = ProcessHandle.Open(processId);
                     var error = GetApplicationUserModelId(process, &length, string2);
 
                     if (error is not WIN32_ERROR.ERROR_SUCCESS)
