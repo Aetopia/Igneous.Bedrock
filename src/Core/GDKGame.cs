@@ -19,49 +19,46 @@ unsafe sealed class GDKGame : Game
 
     readonly string _path;
 
-    WindowHandle? Window
+    WindowHandle? GetWindow()
     {
-        get
+        fixed (char* @class = "Bedrock")
+        fixed (char* string1 = _applicationUserModelId)
         {
-            fixed (char* @class = "Bedrock")
-            fixed (char* string1 = _applicationUserModelId)
+            WindowHandle window = new();
+            var length = APPLICATION_USER_MODEL_ID_MAX_LENGTH;
+            var string2 = stackalloc char[(int)length];
+
+            while ((window = FindWindowEx(HWND.Null, window, @class, null)) != HWND.Null)
             {
-                WindowHandle window = new();
-                var length = APPLICATION_USER_MODEL_ID_MAX_LENGTH;
-                var string2 = stackalloc char[(int)length];
+                using ProcessHandle process = window.OpenProcess();
 
-                while ((window = FindWindowEx(HWND.Null, window, @class, null)) != HWND.Null)
-                {
-                    using ProcessHandle process = window.OpenProcess();
+                var error = GetApplicationUserModelId(process, &length, string2);
+                if (error is not WIN32_ERROR.ERROR_SUCCESS) continue;
 
-                    var error = GetApplicationUserModelId(process, &length, string2);
-                    if (error is not WIN32_ERROR.ERROR_SUCCESS) continue;
+                var result = CompareStringOrdinal(string1, -1, string2, -1, true);
+                if (result is not COMPARESTRING_RESULT.CSTR_EQUAL) continue;
 
-                    var result = CompareStringOrdinal(string1, -1, string2, -1, true);
-                    if (result is not COMPARESTRING_RESULT.CSTR_EQUAL) continue;
-
-                    return window;
-                }
-
-                return null;
+                return window;
             }
+
+            return null;
         }
     }
 
-    public override bool Running => Window is not null;
+    public override bool Running => GetWindow() is not null;
 
     public override uint? Launch()
     {
-        var window = Window; if (window is not null)
+        if (GetWindow() is WindowHandle window)
         {
-            window?.SetForeground();
-            return window?.ProcessId;
+            window.SetForeground();
+            return window.ProcessId;
         }
 
         using ProcessHandle bootstrapper = new(Activate());
         bootstrapper.WaitForExit();
 
-        using var process = Window?.OpenProcess();
+        using var process = GetWindow()?.OpenProcess();
         if (process is null) return null;
 
         Directory.CreateDirectory(_path);
@@ -86,7 +83,7 @@ unsafe sealed class GDKGame : Game
 
     public override void Terminate()
     {
-        using var process = Window?.OpenProcess();
+        using var process = GetWindow()?.OpenProcess();
         process?.Terminate();
     }
 }
