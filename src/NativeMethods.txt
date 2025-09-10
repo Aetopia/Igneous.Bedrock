@@ -27,6 +27,10 @@ SetEntriesInAcl
 SetNamedSecurityInfo
 GetClassName
 TerminateProcess
+SetEvent
+CreateEvent
+WaitForMultipleObjects
+SetForegroundWindow
 INFINITE
 ACE_FLAGS
 CHILDID_SELF
