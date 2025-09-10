@@ -16,7 +16,7 @@ public sealed partial class Minecraft
         internal const string PackageFamilyName = "Microsoft.MinecraftWindowsBeta_8wekyb3d8bbwe";
     }
 
-    public static readonly IGame Release = new UWPGame(UWP.PackageFamilyName, UWP.ApplicationUserModelId);
+    public static readonly Game Release = new UWPGame(UWP.PackageFamilyName, UWP.ApplicationUserModelId);
 
-    public static readonly IGame Preview = new GDKGame(WindowsBeta.PackageFamilyName, WindowsBeta.ApplicationUserModelId);
+    public static readonly Game Preview = new GDKGame(WindowsBeta.PackageFamilyName, WindowsBeta.ApplicationUserModelId);
 }

@@ -10,7 +10,7 @@ using static System.Environment.SpecialFolder;
 
 namespace Igneous.Core;
 
-partial class UWPGame : IGame
+partial class UWPGame : Game
 {
     static readonly IPackageDebugSettings _packageDebugSettings;
 
@@ -28,31 +28,19 @@ partial class UWPGame : IGame
 
 unsafe partial class UWPGame
 {
-    internal UWPGame(string packageFamilyName, string applicationUserModelId)
+    internal UWPGame(string packageFamilyName, string applicationUserModelId) : base(packageFamilyName, applicationUserModelId)
     {
-        _packageFamilyName = packageFamilyName;
-        _applicationUserModelId = applicationUserModelId;
         _path = string.Format(Format, GetFolderPath(LocalApplicationData), packageFamilyName);
     }
 
     const string Format = @"{0}\Packages\{1}\LocalState\games\com.mojang\minecraftpe\resource_init_lock";
 
-    readonly string _path, _packageFamilyName, _applicationUserModelId;
+    readonly string _path;
 }
 
 unsafe partial class UWPGame
 {
-    public bool Installed
-    {
-        get
-        {
-            uint count = 0, length = 0;
-            var error = GetPackagesByPackageFamily(_packageFamilyName, ref count, null, ref length, null);
-            return error is ERROR_INSUFFICIENT_BUFFER && count > 0;
-        }
-    }
-
-    public bool Running
+    public override bool Running
     {
         get
         {
@@ -67,7 +55,7 @@ unsafe partial class UWPGame
                 {
                     uint processId = 0;
                     GetWindowThreadProcessId(window, &processId);
-                    using var process = ProcessHandle.Open(processId);
+                    using ProcessHandle process = new(processId);
 
                     var error = GetApplicationUserModelId(process, &length, string2);
                     if (error is not ERROR_SUCCESS) continue;
@@ -86,16 +74,7 @@ unsafe partial class UWPGame
 
 unsafe partial class UWPGame
 {
-    uint Activate()
-    {
-        fixed (char* applicationUserModelId = _applicationUserModelId)
-        {
-            _applicationActivationManager.ActivateApplication(applicationUserModelId, null, AO_NOERRORUI, out uint processId);
-            return processId;
-        }
-    }
-
-    public uint? Launch()
+    public override uint? Launch()
     {
         fixed (char* path = _path)
         {
@@ -104,7 +83,7 @@ unsafe partial class UWPGame
                 if (!Running || file is not null)
                 {
                     var processId = Activate();
-                    var process = ProcessHandle.Open(Activate());
+                    using ProcessHandle process = new(processId);
 
                     while (process.Running(1))
                         if (file is null) file = FileHandle.Open(path);
@@ -118,7 +97,7 @@ unsafe partial class UWPGame
         }
     }
 
-    public void Terminate()
+    public override void Terminate()
     {
         uint count = 1, length = PACKAGE_FULL_NAME_MAX_LENGTH;
         PWSTR packageFullNames = new(), packageFullName = stackalloc char[(int)length];

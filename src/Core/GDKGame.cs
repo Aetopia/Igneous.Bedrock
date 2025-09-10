@@ -6,94 +6,59 @@ using static Windows.Win32.PInvoke;
 
 namespace Igneous.Core;
 
-unsafe sealed class GDKGame : IGame
+unsafe sealed class GDKGame : Game
 {
-    static readonly IApplicationActivationManager _applicationActivationManager;
+    internal GDKGame(string packageFamilyName, string applicationUserModelId) : base(packageFamilyName, applicationUserModelId) { }
 
-    static GDKGame()
+    ProcessHandle? GetProcess()
     {
-        ApplicationActivationManager applicationActivationManager = new();
-        _applicationActivationManager = (IApplicationActivationManager)applicationActivationManager;
-    }
-
-    internal GDKGame(string packageFamilyName, string applicationUserModelId)
-    {
-        _packageFamilyName = packageFamilyName;
-        _applicationUserModelId = applicationUserModelId;
-    }
-
-    readonly string _packageFamilyName, _applicationUserModelId;
-
-    internal ProcessHandle? Process
-    {
-        get
+        fixed (char* @class = "Bedrock")
+        fixed (char* string1 = _applicationUserModelId)
         {
-            fixed (char* @class = "Bedrock")
-            fixed (char* string1 = _applicationUserModelId)
+            var length = APPLICATION_USER_MODEL_ID_MAX_LENGTH;
+            var string2 = stackalloc char[(int)length];
+
+            HWND window = HWND.Null; while ((window = FindWindowEx(HWND.Null, window, @class, null)) != HWND.Null)
             {
-                var length = APPLICATION_USER_MODEL_ID_MAX_LENGTH;
-                var string2 = stackalloc char[(int)length];
+                uint processId = 0;
+                GetWindowThreadProcessId(window, &processId);
 
-                HWND window = HWND.Null; while ((window = FindWindowEx(HWND.Null, window, @class, null)) != HWND.Null)
-                {
-                    uint processId = 0;
-                    GetWindowThreadProcessId(window, &processId);
+                ProcessHandle process = new(processId);
+                var error = GetApplicationUserModelId(process, &length, string2);
 
-                    var process = ProcessHandle.Open(processId);
-                    var error = GetApplicationUserModelId(process, &length, string2);
+                if (error is not WIN32_ERROR.ERROR_SUCCESS)
+                    using (process) continue;
 
-                    if (error is not WIN32_ERROR.ERROR_SUCCESS)
-                        using (process) continue;
+                var result = CompareStringOrdinal(string1, -1, string2, -1, true);
 
-                    var result = CompareStringOrdinal(string1, -1, string2, -1, true);
+                if (result is not COMPARESTRING_RESULT.CSTR_EQUAL)
+                    using (process) continue;
 
-                    if (result is not COMPARESTRING_RESULT.CSTR_EQUAL)
-                        using (process) continue;
-
-                    return process;
-                }
-
-                return null;
+                return process;
             }
+
+            return null;
         }
     }
 
-    public bool Installed
+    public override bool Running
     {
         get
         {
-            uint count = 0, length = 0;
-            var error = GetPackagesByPackageFamily(_packageFamilyName, ref count, null, ref length, null);
-            return error is WIN32_ERROR.ERROR_INSUFFICIENT_BUFFER && count > 0;
-        }
-    }
-
-    public bool Running
-    {
-        get
-        {
-            using var process = Process;
+            using var process = GetProcess();
             return process is not null;
         }
     }
 
-    public uint? Launch()
+    public override uint? Launch()
     {
-        fixed (char* appUserModelId = _applicationUserModelId)
-        {
-            _applicationActivationManager.ActivateApplication(appUserModelId, null, ACTIVATEOPTIONS.AO_NOERRORUI, out var processId);
-
-            using (var process = ProcessHandle.Open(processId))
-                if (!process.Wait()) return null;
-
-            using (var process = Process)
-                return process?.ProcessId;
-        }
+        using (ProcessHandle process = new(Activate())) process.Wait();
+        using (var process = GetProcess()) return process?.ProcessId;
     }
 
-    public void Terminate()
+    public override void Terminate()
     {
-        using var process = Process;
+        using var process = GetProcess();
         process?.Terminate();
     }
 }
