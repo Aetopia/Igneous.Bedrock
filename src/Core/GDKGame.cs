@@ -81,10 +81,18 @@ unsafe sealed class GDKGame : IGame
         fixed (char* appUserModelId = _applicationUserModelId)
         {
             _applicationActivationManager.ActivateApplication(appUserModelId, null, ACTIVATEOPTIONS.AO_NOERRORUI, out var processId);
-            using (var process = ProcessHandle.Open(processId)) if (!process.Wait()) return null;
-            using (var process = Process) return process?.ProcessId;
+
+            using (var process = ProcessHandle.Open(processId))
+                if (!process.Wait()) return null;
+
+            using (var process = Process)
+                return process?.ProcessId;
         }
     }
 
-    public void Terminate() { using var process = Process; process?.Terminate(); }
+    public void Terminate()
+    {
+        using var process = Process;
+        process?.Terminate();
+    }
 }
