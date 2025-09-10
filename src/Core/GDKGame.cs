@@ -26,9 +26,44 @@ unsafe sealed class GDKGame : IGame
 
     readonly string _packageFamilyName, _applicationUserModelId;
 
-    public bool Installed => false;
+    public bool Installed
+    {
+        get
+        {
+            uint count = 0, length = 0;
+            var error = GetPackagesByPackageFamily(_packageFamilyName, ref count, null, ref length, null);
+            return error is WIN32_ERROR.ERROR_INSUFFICIENT_BUFFER && count > 0;
+        }
+    }
 
-    public bool Running => false;
+    public bool Running
+    {
+        get
+        {
+            fixed (char* @class = Class)
+            fixed (char* appUserModelId = _applicationUserModelId)
+            {
+                var applicationUserModelIdLength = APPLICATION_USER_MODEL_ID_MAX_LENGTH;
+                var applicationUserModelId = stackalloc char[(int)applicationUserModelIdLength];
+
+                HWND window = HWND.Null; while ((window = FindWindowEx(HWND.Null, window, @class, null)) != HWND.Null)
+                {
+                    uint processId = 0; GetWindowThreadProcessId(window, &processId);
+                    using var process = ProcessHandle.Open(processId);
+
+                    var error = GetApplicationUserModelId(process, &applicationUserModelIdLength, applicationUserModelId);
+                    if (error is not WIN32_ERROR.ERROR_SUCCESS) continue;
+
+                    var result = CompareStringOrdinal(appUserModelId, -1, applicationUserModelId, -1, true);
+                    if (result is not COMPARESTRING_RESULT.CSTR_EQUAL) continue;
+
+                    return true;
+                }
+
+                return false;
+            }
+        }
+    }
 
     public uint? Launch()
     {
@@ -63,6 +98,25 @@ unsafe sealed class GDKGame : IGame
 
     public void Terminate()
     {
+        fixed (char* @class = Class)
+        fixed (char* appUserModelId = _applicationUserModelId)
+        {
+            var applicationUserModelIdLength = APPLICATION_USER_MODEL_ID_MAX_LENGTH;
+            var applicationUserModelId = stackalloc char[(int)applicationUserModelIdLength];
 
+            HWND window = HWND.Null; while ((window = FindWindowEx(HWND.Null, window, @class, null)) != HWND.Null)
+            {
+                uint processId = 0; GetWindowThreadProcessId(window, &processId);
+                using var process = ProcessHandle.Open(processId);
+
+                var error = GetApplicationUserModelId(process, &applicationUserModelIdLength, applicationUserModelId);
+                if (error is not WIN32_ERROR.ERROR_SUCCESS) continue;
+
+                var result = CompareStringOrdinal(appUserModelId, -1, applicationUserModelId, -1, true);
+                if (result is not COMPARESTRING_RESULT.CSTR_EQUAL) continue;
+
+                process.Terminate();
+            }
+        }
     }
 }

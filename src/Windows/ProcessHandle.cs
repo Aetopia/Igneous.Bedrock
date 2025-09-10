@@ -14,6 +14,8 @@ readonly struct ProcessHandle : IDisposable
 
     internal bool Wait() => WaitForSingleObject(_handle, INFINITE) is WAIT_OBJECT_0;
 
+    internal void Terminate() => TerminateProcess(_handle, 0);
+
     internal static ProcessHandle Open(uint processId) => new(processId);
 
     ProcessHandle(uint processId) => _handle = OpenProcess(PROCESS_ALL_ACCESS, false, processId);

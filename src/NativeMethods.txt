@@ -25,14 +25,8 @@ VirtualFreeEx
 VirtualAllocEx
 SetEntriesInAcl
 SetNamedSecurityInfo
-GetMessage
-SetWinEventHook
 GetClassName
-IsWindow
-SHGetPropertyStoreForWindow
-IPropertyStore
-PKEY_AppUserModel_ID
-PropVariantClear
+TerminateProcess
 INFINITE
 ACE_FLAGS
 CHILDID_SELF
