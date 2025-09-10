@@ -24,7 +24,7 @@ unsafe sealed class GDKGame : Game
         fixed (char* @class = "Bedrock")
         fixed (char* string1 = _applicationUserModelId)
         {
-            WindowHandle window = new();
+            WindowHandle window = HWND.Null;
             var length = APPLICATION_USER_MODEL_ID_MAX_LENGTH;
             var string2 = stackalloc char[(int)length];
 
