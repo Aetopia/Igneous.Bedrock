@@ -10,6 +10,8 @@ readonly struct ProcessHandle : IDisposable
 {
     readonly HANDLE _handle;
 
+    internal readonly uint ProcessId;
+
     internal bool Running(uint milliseconds) => WaitForSingleObject(_handle, milliseconds) is WAIT_TIMEOUT;
 
     internal bool Wait() => WaitForSingleObject(_handle, INFINITE) is WAIT_OBJECT_0;
@@ -18,8 +20,11 @@ readonly struct ProcessHandle : IDisposable
 
     internal static ProcessHandle Open(uint processId) => new(processId);
 
-    ProcessHandle(uint processId) => _handle = OpenProcess(PROCESS_ALL_ACCESS, false, processId);
-
+    ProcessHandle(uint processId)
+    {
+        ProcessId = processId;
+        _handle = OpenProcess(PROCESS_ALL_ACCESS, false, processId);
+    }
     public void Dispose() => CloseHandle(_handle);
 
     public static implicit operator HANDLE(in ProcessHandle @this) => @this._handle;

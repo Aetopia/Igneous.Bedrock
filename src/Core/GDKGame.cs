@@ -26,6 +26,38 @@ unsafe sealed class GDKGame : IGame
 
     readonly string _packageFamilyName, _applicationUserModelId;
 
+    ProcessHandle? Process
+    {
+        get
+        {
+            fixed (char* @class = "Bedrock") fixed (char* string1 = _applicationUserModelId)
+            {
+                var length = APPLICATION_USER_MODEL_ID_MAX_LENGTH;
+                var string2 = stackalloc char[(int)length];
+
+                HWND window = HWND.Null; while ((window = FindWindowEx(HWND.Null, window, @class, null)) != HWND.Null)
+                {
+                    uint processId = 0; GetWindowThreadProcessId(window, &processId);
+                    var process = ProcessHandle.Open(processId);
+
+                    var error = GetApplicationUserModelId(process, &length, string2);
+
+                    if (error is not WIN32_ERROR.ERROR_SUCCESS)
+                        using (process) continue;
+
+                    var result = CompareStringOrdinal(string1, -1, string2, -1, true);
+
+                    if (result is not COMPARESTRING_RESULT.CSTR_EQUAL)
+                        using (process) continue;
+
+                    return process;
+                }
+
+                return null;
+            }
+        }
+    }
+
     public bool Installed
     {
         get
@@ -40,28 +72,8 @@ unsafe sealed class GDKGame : IGame
     {
         get
         {
-            fixed (char* @class = Class)
-            fixed (char* appUserModelId = _applicationUserModelId)
-            {
-                var applicationUserModelIdLength = APPLICATION_USER_MODEL_ID_MAX_LENGTH;
-                var applicationUserModelId = stackalloc char[(int)applicationUserModelIdLength];
-
-                HWND window = HWND.Null; while ((window = FindWindowEx(HWND.Null, window, @class, null)) != HWND.Null)
-                {
-                    uint processId = 0; GetWindowThreadProcessId(window, &processId);
-                    using var process = ProcessHandle.Open(processId);
-
-                    var error = GetApplicationUserModelId(process, &applicationUserModelIdLength, applicationUserModelId);
-                    if (error is not WIN32_ERROR.ERROR_SUCCESS) continue;
-
-                    var result = CompareStringOrdinal(appUserModelId, -1, applicationUserModelId, -1, true);
-                    if (result is not COMPARESTRING_RESULT.CSTR_EQUAL) continue;
-
-                    return true;
-                }
-
-                return false;
-            }
+            using var process = Process;
+            return process is not null;
         }
     }
 
@@ -70,30 +82,13 @@ unsafe sealed class GDKGame : IGame
         fixed (char* appUserModelId = _applicationUserModelId)
         {
             _applicationActivationManager.ActivateApplication(appUserModelId, null, ACTIVATEOPTIONS.AO_NOERRORUI, out var processId);
-            using (var process = ProcessHandle.Open(processId)) if (!process.Wait()) return null;
 
-            fixed (char* @class = Class)
-            {
-                var applicationUserModelIdLength = APPLICATION_USER_MODEL_ID_MAX_LENGTH;
-                var applicationUserModelId = stackalloc char[(int)applicationUserModelIdLength];
+            using (var process = ProcessHandle.Open(processId))
+                if (!process.Wait()) return null;
 
-                HWND window = HWND.Null; while ((window = FindWindowEx(HWND.Null, window, @class, null)) != HWND.Null)
-                {
-                    GetWindowThreadProcessId(window, &processId);
-                    using var process = ProcessHandle.Open(processId);
-
-                    var error = GetApplicationUserModelId(process, &applicationUserModelIdLength, applicationUserModelId);
-                    if (error is not WIN32_ERROR.ERROR_SUCCESS) continue;
-
-                    var result = CompareStringOrdinal(appUserModelId, -1, applicationUserModelId, -1, true);
-                    if (result is not COMPARESTRING_RESULT.CSTR_EQUAL) continue;
-
-                    return processId;
-                }
-            }
+            using (var process = Process)
+                return process?.ProcessId;
         }
-
-        return null;
     }
 
     public void Terminate()
