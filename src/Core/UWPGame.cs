@@ -85,7 +85,7 @@ unsafe partial class UWPGame
                     var processId = Activate();
                     using ProcessHandle process = new(processId);
 
-                    while (process.Running(1))
+                    while (process.IsRunning(1))
                         if (file is null) file = FileHandle.Open(path);
                         else if (((FileHandle)file).Deleted) return processId;
 

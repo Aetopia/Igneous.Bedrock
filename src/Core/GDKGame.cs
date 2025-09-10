@@ -19,29 +19,28 @@ unsafe sealed class GDKGame : Game
 
     readonly string _path;
 
-    ProcessHandle? Process
+    WindowHandle? Window
     {
         get
         {
             fixed (char* @class = "Bedrock")
             fixed (char* string1 = _applicationUserModelId)
             {
+                WindowHandle window = new();
                 var length = APPLICATION_USER_MODEL_ID_MAX_LENGTH;
                 var string2 = stackalloc char[(int)length];
 
-                HWND window = HWND.Null; while ((window = FindWindowEx(HWND.Null, window, @class, null)) != HWND.Null)
+                while ((window = FindWindowEx(HWND.Null, window, @class, null)) != HWND.Null)
                 {
-                    ProcessHandle process = new(window);
+                    using ProcessHandle process = window.OpenProcess();
 
                     var error = GetApplicationUserModelId(process, &length, string2);
-                    if (error is not WIN32_ERROR.ERROR_SUCCESS)
-                        using (process) continue;
+                    if (error is not WIN32_ERROR.ERROR_SUCCESS) continue;
 
                     var result = CompareStringOrdinal(string1, -1, string2, -1, true);
-                    if (result is not COMPARESTRING_RESULT.CSTR_EQUAL)
-                        using (process) continue;
+                    if (result is not COMPARESTRING_RESULT.CSTR_EQUAL) continue;
 
-                    return process;
+                    return window;
                 }
 
                 return null;
@@ -49,22 +48,21 @@ unsafe sealed class GDKGame : Game
         }
     }
 
-    public override bool Running
-    {
-        get
-        {
-            using var process = Process;
-            return process is not null;
-        }
-    }
+    public override bool Running => Window is not null;
 
     public override uint? Launch()
     {
-        using var game = Process;
-        if (game is not null) { game?.Foreground(); return game?.ProcessId; }
+        var window = Window; if (window is not null)
+        {
+            window?.SetForeground();
+            return window?.ProcessId;
+        }
 
-        using ProcessHandle bootstrapper = new(Activate()); bootstrapper.Wait();
-        using var process = Process; if (process is null) return null;
+        using ProcessHandle bootstrapper = new(Activate());
+        bootstrapper.WaitForExit();
+
+        using var process = Window?.OpenProcess();
+        if (process is null) return null;
 
         Directory.CreateDirectory(_path);
         using FileSystemWatcher watcher = new(_path, "*resource_init_lock")
@@ -88,7 +86,7 @@ unsafe sealed class GDKGame : Game
 
     public override void Terminate()
     {
-        using var process = Process;
+        using var process = Window?.OpenProcess();
         process?.Terminate();
     }
 }
