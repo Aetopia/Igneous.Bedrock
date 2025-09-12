@@ -25,7 +25,6 @@ VirtualFreeEx
 VirtualAllocEx
 SetEntriesInAcl
 SetNamedSecurityInfo
-GetClassName
 TerminateProcess
 SetEvent
 CreateEvent
