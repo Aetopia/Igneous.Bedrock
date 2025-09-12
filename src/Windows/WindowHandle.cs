@@ -11,7 +11,7 @@ unsafe readonly struct WindowHandle
         ProcessId = processId; _handle = handle;
     }
 
-   internal readonly uint ProcessId;
+    internal readonly uint ProcessId;
 
     readonly HWND _handle = HWND.Null;
 

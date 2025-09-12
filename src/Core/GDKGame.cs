@@ -1,12 +1,10 @@
 using Igneous.Windows;
 using Windows.Win32.Foundation;
 using Windows.Win32.Globalization;
-using Windows.Win32.UI.Shell;
 using static Windows.Win32.PInvoke;
 using static System.Environment;
 using static System.Environment.SpecialFolder;
 using System.IO;
-using System.Threading;
 
 namespace Igneous.Core;
 
@@ -19,7 +17,7 @@ unsafe sealed class GDKGame : Game
 
     readonly string _path;
 
-    WindowHandle? GetWindow()
+    WindowHandle? FindWindow()
     {
         fixed (char* @class = "Bedrock")
         fixed (char* string1 = _applicationUserModelId)
@@ -45,11 +43,11 @@ unsafe sealed class GDKGame : Game
         }
     }
 
-    public override bool Running => GetWindow() is not null;
+    public override bool Running => FindWindow() is not null;
 
     public override uint? Launch()
     {
-        if (GetWindow() is WindowHandle window)
+        if (FindWindow() is WindowHandle window)
         {
             window.SetForeground();
             return window.ProcessId;
@@ -58,7 +56,7 @@ unsafe sealed class GDKGame : Game
         using ProcessHandle bootstrapper = new(Activate());
         bootstrapper.WaitForExit();
 
-        using var process = GetWindow()?.OpenProcess();
+        using var process = FindWindow()?.OpenProcess();
         if (process is null) return null;
 
         Directory.CreateDirectory(_path);
@@ -83,7 +81,10 @@ unsafe sealed class GDKGame : Game
 
     public override void Terminate()
     {
-        using var process = GetWindow()?.OpenProcess();
-        process?.Terminate();
+        if (FindWindow() is not WindowHandle window)
+            return;
+
+        using var process = window.OpenProcess();
+        process.Terminate();
     }
 }
