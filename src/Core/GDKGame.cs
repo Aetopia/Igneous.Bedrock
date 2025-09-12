@@ -56,27 +56,30 @@ unsafe sealed class GDKGame : Game
         using ProcessHandle bootstrapper = new(Activate());
         bootstrapper.WaitForExit();
 
-        using var process = FindWindow()?.OpenProcess();
-        if (process is null) return null;
+        if (FindWindow()?.OpenProcess() is not ProcessHandle process)
+            return null;
 
-        Directory.CreateDirectory(_path);
-        using FileSystemWatcher watcher = new(_path, "*resource_init_lock")
+        using (process)
         {
-            EnableRaisingEvents = true,
-            IncludeSubdirectories = true,
-            NotifyFilter = NotifyFilters.FileName
-        };
+            Directory.CreateDirectory(_path);
+            using FileSystemWatcher watcher = new(_path, "*resource_init_lock")
+            {
+                EnableRaisingEvents = true,
+                IncludeSubdirectories = true,
+                NotifyFilter = NotifyFilters.FileName
+            };
 
-        using EventHandle @event = new();
-        watcher.Deleted += (sender, args) => @event.Set();
+            using EventHandle @event = new();
+            watcher.Deleted += (sender, args) => @event.Set();
 
-        var handles = stackalloc HANDLE[2];
-        handles[0] = (HANDLE)process; handles[1] = @event;
+            var handles = stackalloc HANDLE[2];
+            handles[0] = (HANDLE)process; handles[1] = @event;
 
-        if (WaitForMultipleObjects(2, handles, false, INFINITE) > 0)
-            return process?.ProcessId;
+            if (WaitForMultipleObjects(2, handles, false, INFINITE) > 0)
+                return process.ProcessId;
 
-        return null;
+            return null;
+        }
     }
 
     public override void Terminate()
