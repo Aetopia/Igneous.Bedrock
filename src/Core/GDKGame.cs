@@ -5,6 +5,7 @@ using static Windows.Win32.PInvoke;
 using static System.Environment;
 using static System.Environment.SpecialFolder;
 using System.IO;
+using System;
 
 namespace Igneous.Core;
 

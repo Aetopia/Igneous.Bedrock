@@ -10,23 +10,7 @@ using static System.Environment.SpecialFolder;
 
 namespace Igneous.Core;
 
-partial class UWPGame : Game
-{
-    static readonly IPackageDebugSettings _packageDebugSettings;
-
-    static readonly IApplicationActivationManager _applicationActivationManager;
-
-    unsafe static UWPGame()
-    {
-        PackageDebugSettings packageDebugSettings = new();
-        ApplicationActivationManager applicationActivationManager = new();
-
-        _packageDebugSettings = (IPackageDebugSettings)packageDebugSettings;
-        _applicationActivationManager = (IApplicationActivationManager)applicationActivationManager;
-    }
-}
-
-unsafe partial class UWPGame
+unsafe partial class UWPGame :Game
 {
     internal UWPGame(string packageFamilyName, string applicationUserModelId) : base(packageFamilyName, applicationUserModelId)
     {
@@ -74,6 +58,12 @@ unsafe partial class UWPGame
 
 unsafe partial class UWPGame
 {
+    void GetPackageFullName(char* packageFullName, ref uint length)
+    {
+        uint count = 1; PWSTR packageFullNames = new();
+        GetPackagesByPackageFamily(_packageFamilyName, ref count, &packageFullNames, ref length, packageFullName);
+    }
+
     public override uint? Launch()
     {
         fixed (char* path = _path)
@@ -99,10 +89,10 @@ unsafe partial class UWPGame
 
     public override void Terminate()
     {
-        uint count = 1, length = PACKAGE_FULL_NAME_MAX_LENGTH;
-        PWSTR packageFullNames = new(), packageFullName = stackalloc char[(int)length];
+        uint length = PACKAGE_FULL_NAME_MAX_LENGTH + 1;
+        var packageFullName = stackalloc char[(int)length];
 
-        GetPackagesByPackageFamily(_packageFamilyName, ref count, &packageFullNames, ref length, packageFullName);
+        GetPackageFullName(packageFullName, ref length);
         _packageDebugSettings.TerminateAllProcesses(packageFullName);
     }
 }
