@@ -8,6 +8,10 @@ using Windows.Management.Deployment;
 
 namespace Igneous.Management;
 
+/// <summary>
+/// Provides services for querying metadata for Minecraft: Bedrock Edition.
+/// </summary>
+
 public sealed partial class Metadata
 {
     static readonly PackageManager _packageManager = new();
@@ -15,6 +19,10 @@ public sealed partial class Metadata
     readonly string _packageFamilyName;
 
     Metadata(string packageFamilyName) => _packageFamilyName = packageFamilyName;
+
+    /// <summary>
+    /// Queries the installed version of Minecraft: Bedrock Edition.
+    /// </summary>
 
     public string Version
     {
@@ -35,6 +43,10 @@ public sealed partial class Metadata
         }
     }
 
+    /// <summary>
+    /// Queries if Minecraft: Bedrock Edition is using the Game Development Kit.
+    /// </summary>
+
     public bool? GDK
     {
         get
@@ -43,7 +55,7 @@ public sealed partial class Metadata
 
             if (package.SignatureKind is not PackageSignatureKind.Store)
                 return null;
-                
+
             var path = Path.Combine(package.InstalledLocation.Path, "MicrosoftGame.config");
             return File.Exists(path);
         }
@@ -52,7 +64,15 @@ public sealed partial class Metadata
 
 partial class Metadata
 {
+    /// <summary>
+    /// Provides metadata for Minecraft.
+    /// </summary>
+
     public static readonly Metadata Release = new(Minecraft.UWP.PackageFamilyName);
+
+    /// <summary>
+    /// Provides metadata for Minecraft Preview.
+    /// </summary>
 
     public static readonly Metadata Preview = new(Minecraft.WindowsBeta.PackageFamilyName);
 }

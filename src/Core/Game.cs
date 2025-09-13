@@ -4,6 +4,10 @@ using static Windows.Win32.PInvoke;
 
 namespace Igneous.Core;
 
+/// <summary>
+/// Provides services for interacting with Minecraft: Bedrock Edition.
+/// </summary>
+
 public unsafe abstract class Game
 {
     internal Game(string packageFamilyName, string applicationUserModelId)
@@ -25,9 +29,9 @@ public unsafe abstract class Game
         _applicationActivationManager = (IApplicationActivationManager)applicationActivationManager;
     }
 
-    protected readonly string _packageFamilyName, _applicationUserModelId;
+    private protected readonly string _packageFamilyName, _applicationUserModelId;
 
-    protected uint Activate()
+    private protected uint Activate()
     {
         fixed (char* applicationUserModelId = _applicationUserModelId)
         {
@@ -36,11 +40,15 @@ public unsafe abstract class Game
         }
     }
 
-    void GetPackageFullName(char* packageFullName, ref uint length)
+    private protected void GetPackageFullName(char* packageFullName, ref uint length)
     {
         uint count = 1; PWSTR packageFullNames = new();
         GetPackagesByPackageFamily(_packageFamilyName, ref count, &packageFullNames, ref length, packageFullName);
     }
+
+    /// <summary>
+    /// Check if Minecraft: Bedrock Edition is installed.
+    /// </summary>
 
     public bool Installed
     {
@@ -51,6 +59,10 @@ public unsafe abstract class Game
             return error is WIN32_ERROR.ERROR_INSUFFICIENT_BUFFER && count > 0;
         }
     }
+
+    /// <summary>
+    /// Unbounds Minecraft: Bedrock Edition from the Process Lifecycle Manager.
+    /// </summary>
 
     public bool Unbounded
     {
@@ -65,9 +77,25 @@ public unsafe abstract class Game
         }
     }
 
+    /// <summary>
+    /// Launches Minecraft: Bedrock Edition.
+    /// </summary>
+
+    /// <returns>
+    /// The process identifer of the game.
+    /// </returns>
+
     public abstract uint? Launch();
 
+    /// <summary>
+    /// Terminates Minecraft: Bedrock Edition.
+    /// </summary>
+
     public abstract void Terminate();
+
+    /// <summary>
+    /// Check if Minecraft: Bedrock Edition is running.
+    /// </summary>
 
     public abstract bool Running { get; }
 }

@@ -7,10 +7,11 @@ using static Windows.Win32.Globalization.COMPARESTRING_RESULT;
 using Igneous.Windows;
 using static System.Environment;
 using static System.Environment.SpecialFolder;
+using System.IO;
 
 namespace Igneous.Core;
 
-unsafe partial class UWPGame :Game
+unsafe partial class UWPGame : Game
 {
     internal UWPGame(string packageFamilyName, string applicationUserModelId) : base(packageFamilyName, applicationUserModelId)
     {
@@ -58,30 +59,25 @@ unsafe partial class UWPGame
 
 unsafe partial class UWPGame
 {
-    void GetPackageFullName(char* packageFullName, ref uint length)
-    {
-        uint count = 1; PWSTR packageFullNames = new();
-        GetPackagesByPackageFamily(_packageFamilyName, ref count, &packageFullNames, ref length, packageFullName);
-    }
-
     public override uint? Launch()
     {
+        if (Running) return Activate();
+
         fixed (char* path = _path)
         {
-            var file = FileHandle.Open(path); try
+            FileHandle? file = null;
+            try
             {
-                if (!Running || file is not null)
+                using ProcessHandle process = new(Activate());
+
+                while (process.IsRunning(1))
                 {
-                    var processId = Activate();
-                    using ProcessHandle process = new(processId);
-
-                    while (process.IsRunning(1))
-                        if (file is null) file = FileHandle.Open(path);
-                        else if (((FileHandle)file).Deleted) return processId;
-
-                    return null;
+                    file ??= FileHandle.Open(path);
+                    if (file?.Deleted ?? false)
+                        return process.ProcessId;
                 }
-                return Activate();
+
+                return null;
             }
             finally { file?.Dispose(); }
         }

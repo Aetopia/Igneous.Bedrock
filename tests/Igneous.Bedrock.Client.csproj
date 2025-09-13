@@ -1,12 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <Optimize>true</Optimize>
     <OutputType>Exe</OutputType>
     <TargetFramework>net481</TargetFramework>
-    <LangVersion>latest</LangVersion>
 
+    <LangVersion>latest</LangVersion>
     <PublishRelease>true</PublishRelease>
-    <Optimize>true</Optimize>
+    <UseWindowsForms>true</UseWindowsForms>
 
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -14,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../src/Igneous.csproj" />
+    <ProjectReference Include="../src/Igneous.Bedrock.csproj" />
   </ItemGroup>
 
 </Project>

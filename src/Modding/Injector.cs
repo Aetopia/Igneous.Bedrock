@@ -11,6 +11,10 @@ using static Windows.Win32.PInvoke;
 
 namespace Igneous.Modding;
 
+/// <summary>
+/// Provides services for injection modifications into Minecraft: Bedrock Edition.
+/// </summary>
+
 public unsafe sealed partial class Injector
 {
     readonly Game _game;
@@ -20,7 +24,7 @@ public unsafe sealed partial class Injector
     Injector(Game game)
     {
         _game = game;
-        uwp= game is UWPGame;
+        uwp = game is UWPGame;
     }
 }
 
@@ -57,6 +61,26 @@ unsafe partial class Injector
 
 unsafe partial class Injector
 {
+    /// <summary>
+    /// Launches &amp; injects modifications libraries into Minecraft: Bedrock Edition.
+    /// </summary>
+
+    /// <param name="libraries">
+    /// List of modifications libraries to inject.
+    /// </param>
+
+    /// <returns>
+    /// The process identifier of the game.
+    /// </returns>
+
+    /// <exception cref="FileNotFoundException">
+    /// Thrown if any specified modification library doesn't exist.
+    /// </exception>
+
+    /// <exception cref="BadImageFormatException">
+    /// Thrown if any specified modification library is invalid.
+    /// </exception>
+
     public uint? Launch(params IReadOnlyCollection<ModificationLibrary> libraries)
     {
         if (_game.Launch() is not uint processId)
@@ -92,7 +116,15 @@ unsafe partial class Injector
 
 partial class Injector
 {
+    /// <summary>
+    /// Provides injection services for Minecraft.
+    /// </summary>
+
     public static readonly Injector Release = new(Minecraft.Release);
+
+    /// <summary>
+    /// Provides injection services for Minecraft Preview.
+    /// </summary>
 
     public static readonly Injector Preview = new(Minecraft.Preview);
 }
