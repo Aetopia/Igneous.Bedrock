@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using Igneous.System;
 using Windows.Win32.Foundation;
 using Windows.Win32.UI.Shell;
 using static Windows.Win32.PInvoke;
@@ -8,9 +10,9 @@ namespace Igneous.Core;
 /// Provides services for interacting with Minecraft: Bedrock Edition.
 /// </summary>
 
-public unsafe abstract class Game
+public unsafe abstract class MinecraftGame
 {
-    internal Game(string packageFamilyName, string applicationUserModelId)
+    internal MinecraftGame(string packageFamilyName, string applicationUserModelId)
     {
         _packageFamilyName = packageFamilyName;
         _applicationUserModelId = applicationUserModelId;
@@ -20,7 +22,7 @@ public unsafe abstract class Game
 
     private protected static readonly IPackageDebugSettings _packageDebugSettings;
 
-    static Game()
+    static MinecraftGame()
     {
         PackageDebugSettings packageDebugSettings = new();
         ApplicationActivationManager applicationActivationManager = new();
@@ -46,11 +48,13 @@ public unsafe abstract class Game
         GetPackagesByPackageFamily(_packageFamilyName, ref count, &packageFullNames, ref length, packageFullName);
     }
 
+    internal abstract ProcessHandle? LaunchProcess();
+
     /// <summary>
     /// Check if Minecraft: Bedrock Edition is installed.
     /// </summary>
 
-    public bool Installed
+    public bool IsInstalled
     {
         get
         {
@@ -64,7 +68,7 @@ public unsafe abstract class Game
     /// Unbounds Minecraft: Bedrock Edition from the Process Lifecycle Manager.
     /// </summary>
 
-    public bool Unbounded
+    public bool IsUnbounded
     {
         set
         {
@@ -97,5 +101,5 @@ public unsafe abstract class Game
     /// Check if Minecraft: Bedrock Edition is running.
     /// </summary>
 
-    public abstract bool Running { get; }
+    public abstract bool IsRunning { get; }
 }

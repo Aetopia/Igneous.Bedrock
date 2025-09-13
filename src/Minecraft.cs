@@ -30,11 +30,11 @@ public static class Minecraft
     /// Provides access to Minecraft.
     /// </summary>
 
-    public static readonly Game Release = new UWPGame(UWP.PackageFamilyName, UWP.ApplicationUserModelId);
+    public static readonly MinecraftGame Release = new UWPGame(UWP.PackageFamilyName, UWP.ApplicationUserModelId);
 
     /// <summary>
     /// Provides access to Minecraft Preview.
     /// </summary>
 
-    public static readonly Game Preview = new GDKGame(WindowsBeta.PackageFamilyName, WindowsBeta.ApplicationUserModelId, WindowsBeta.Path);
+    public static readonly MinecraftGame Preview = new GDKGame(WindowsBeta.PackageFamilyName, WindowsBeta.ApplicationUserModelId, WindowsBeta.Path);
 }

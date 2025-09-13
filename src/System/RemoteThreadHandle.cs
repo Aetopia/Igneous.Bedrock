@@ -3,7 +3,7 @@ using Windows.Win32.Foundation;
 using Windows.Win32.System.Threading;
 using static Windows.Win32.PInvoke;
 
-namespace Igneous.Windows;
+namespace Igneous.System;
 
 unsafe sealed class RemoteThreadHandle : IDisposable
 {

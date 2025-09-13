@@ -6,7 +6,7 @@ using static Windows.Win32.Storage.FileSystem.FILE_CREATION_DISPOSITION;
 using static Windows.Win32.Storage.FileSystem.FILE_INFO_BY_HANDLE_CLASS;
 using Windows.Win32.Storage.FileSystem;
 
-namespace Igneous.Windows;
+namespace Igneous.System;
 
 readonly struct FileHandle : IDisposable
 {

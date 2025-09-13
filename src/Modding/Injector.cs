@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Igneous.Core;
-using Igneous.Windows;
+using Igneous.System;
 using Windows.Win32.Foundation;
 using Windows.Win32.Security;
 using Windows.Win32.Security.Authorization;
@@ -17,11 +17,11 @@ namespace Igneous.Modding;
 
 public unsafe sealed partial class Injector
 {
-    readonly Game _game;
+    readonly MinecraftGame _game;
 
     readonly bool _uwp;
 
-    Injector(Game game)
+    Injector(MinecraftGame game)
     {
         _game = game;
         _uwp = game is UWPGame;

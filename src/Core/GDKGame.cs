@@ -6,13 +6,11 @@ using static System.Environment.SpecialFolder;
 using Windows.Win32.System.RemoteDesktop;
 using System.IO;
 using System;
+using Igneous.System;
 
 namespace Igneous.Core;
 
-using Windows;
-
-
-unsafe sealed class GDKGame : Game
+unsafe sealed partial class GDKGame : MinecraftGame
 {
     internal GDKGame(string packageFamilyName, string applicationUserModelId, string path) : base(packageFamilyName, applicationUserModelId)
     {
@@ -20,83 +18,107 @@ unsafe sealed class GDKGame : Game
     }
 
     readonly string _path;
+}
 
-    WindowHandle? GetGameWindow()
+unsafe partial class GDKGame
+{
+    readonly struct GameInstance : IDisposable
+    {
+        internal readonly ProcessHandle Process;
+
+        internal readonly WindowHandle Window;
+
+        internal GameInstance(in ProcessHandle process, in WindowHandle window)
+        {
+            Window = window;
+            Process = process;
+        }
+
+        public void Dispose() => Process.Dispose();
+
+        public static implicit operator ProcessHandle(in GameInstance @this) => @this.Process;
+
+        public static implicit operator WindowHandle(in GameInstance @this) => @this.Window;
+    }
+}
+
+unsafe partial class GDKGame
+{
+    GameInstance? GetInstance()
     {
         fixed (char* @class = "Bedrock")
         fixed (char* string1 = _applicationUserModelId)
         {
-            WindowHandle window = HWND.Null;
+            var window = HWND.Null;
             var length = APPLICATION_USER_MODEL_ID_MAX_LENGTH;
             var string2 = stackalloc char[(int)length];
 
-            while ((window = FindWindowEx(HWND.Null, window, @class, null)) != HWND.Null)
+            while ((window = FindWindowEx(HWND.Null, HWND.Null, @class, null)) != HWND.Null)
             {
-                using ProcessHandle process = window.OpenProcess();
+                uint processId = 0;
+                GetWindowThreadProcessId(window, &processId);
+                ProcessHandle process = new(processId);
 
                 var error = GetApplicationUserModelId(process, &length, string2);
-                if (error is not WIN32_ERROR.ERROR_SUCCESS) continue;
+                if (error is not WIN32_ERROR.ERROR_SUCCESS) using (process) continue;
 
                 var result = CompareStringOrdinal(string1, -1, string2, -1, true);
-                if (result is not COMPARESTRING_RESULT.CSTR_EQUAL) continue;
+                if (result is not COMPARESTRING_RESULT.CSTR_EQUAL) using (process) continue;
 
-                return window;
+                return new(process, new(window));
             }
 
             return null;
         }
     }
 
-    uint GetBootstrapperProcessId()
+    ProcessHandle LaunchBootstrapper()
     {
         fixed (char* string1 = _applicationUserModelId)
         {
             uint count = 0, level = 0;
             WTS_PROCESS_INFOW* processes = null;
-            HANDLE server = HANDLE.WTS_CURRENT_SERVER_HANDLE;
+            var server = HANDLE.WTS_CURRENT_SERVER_HANDLE;
 
-            uint length = APPLICATION_USER_MODEL_ID_MAX_LENGTH;
+            if (!WTSEnumerateProcessesEx(server, &level, WTS_CURRENT_SESSION, (PWSTR*)&processes, &count))
+                return new(Activate());
+
+            var length = APPLICATION_USER_MODEL_ID_MAX_LENGTH;
             var string2 = stackalloc char[(int)length];
 
-            try
+            for (uint index = 0; index < count; index++)
             {
-                if (!WTSEnumerateProcessesEx(server, &level, WTS_CURRENT_SESSION, (PWSTR*)&processes, &count))
-                    return Activate();
+                var processId = processes[index].ProcessId;
+                ProcessHandle process = new(processId);
 
-                for (uint index = 0; index < count; index++)
-                {
-                    var processId = processes[index].ProcessId;
-                    using ProcessHandle process = new(processId);
+                var error = GetApplicationUserModelId(process, &length, string2);
+                if (error is not WIN32_ERROR.ERROR_SUCCESS) using (process) continue;
 
-                    var error = GetApplicationUserModelId(process, &length, string2);
-                    if (error is not WIN32_ERROR.ERROR_SUCCESS) continue;
+                var result = CompareStringOrdinal(string1, -1, string2, -1, true);
+                if (result is not COMPARESTRING_RESULT.CSTR_EQUAL) using (process) continue;
 
-                    var result = CompareStringOrdinal(string1, -1, string2, -1, true);
-                    if (result is not COMPARESTRING_RESULT.CSTR_EQUAL) continue;
-
-                    return process.ProcessId;
-                }
+                return process;
             }
-            finally { WTSFreeMemory(processes); }
 
-            return Activate();
+            return new(Activate());
         }
     }
+}
 
-    public override bool Running => GetGameWindow() is not null;
-
-    public override uint? Launch()
+unsafe partial class GDKGame
+{
+    internal override ProcessHandle? LaunchProcess()
     {
-        if (GetGameWindow() is WindowHandle window)
+        if (GetInstance() is GameInstance instance)
         {
-            window.SetForeground();
-            return window.ProcessId;
+            instance.Window.SetForegroundWindow();
+            return instance.Process;
         }
 
-        using ProcessHandle bootstrapper = new(GetBootstrapperProcessId());
+        using var bootstrapper = LaunchBootstrapper();
         bootstrapper.WaitForExit();
 
-        if (GetGameWindow()?.OpenProcess() is not ProcessHandle process)
+        if (GetInstance()?.Process is not ProcessHandle process)
             return null;
 
         using (process)
@@ -110,24 +132,37 @@ unsafe sealed class GDKGame : Game
             };
 
             using EventHandle @event = new();
-            watcher.Deleted += (sender, args) => @event.Set();
+            watcher.Deleted += (_, _) => @event.Set();
 
-            var handles = stackalloc HANDLE[2];
-            handles[0] = (HANDLE)process; handles[1] = @event;
-
+            var handles = stackalloc HANDLE[2] { process, @event };
             if (WaitForMultipleObjects(2, handles, false, INFINITE) > 0)
-                return process.ProcessId;
+                return process;
 
             return null;
         }
     }
+}
+
+unsafe partial class GDKGame
+{
+    public override bool IsRunning
+    {
+        get
+        {
+            using var process = GetInstance()?.Process;
+            return process is not null;
+        }
+    }
+
+    public override uint? Launch()
+    {
+        if (LaunchProcess() is not ProcessHandle process) return null;
+        using (process) return process.ProcessId;
+    }
 
     public override void Terminate()
     {
-        if (GetGameWindow() is not WindowHandle window)
-            return;
-
-        using var process = window.OpenProcess();
-        process.Terminate();
+        using var process = GetInstance()?.Process;
+        process?.Terminate();
     }
 }

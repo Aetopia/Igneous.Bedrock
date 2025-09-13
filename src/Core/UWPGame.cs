@@ -1,17 +1,15 @@
 using Windows.Win32.Foundation;
-using Windows.Win32.UI.Shell;
 using static Windows.Win32.PInvoke;
 using static Windows.Win32.Foundation.WIN32_ERROR;
-using static Windows.Win32.UI.Shell.ACTIVATEOPTIONS;
 using static Windows.Win32.Globalization.COMPARESTRING_RESULT;
-using Igneous.Windows;
 using static System.Environment;
 using static System.Environment.SpecialFolder;
-using System.IO;
+using Igneous.System;
+using System.Diagnostics;
 
 namespace Igneous.Core;
 
-unsafe partial class UWPGame : Game
+unsafe partial class UWPGame : MinecraftGame
 {
     internal UWPGame(string packageFamilyName, string applicationUserModelId) : base(packageFamilyName, applicationUserModelId)
     {
@@ -25,7 +23,7 @@ unsafe partial class UWPGame : Game
 
 unsafe partial class UWPGame
 {
-    public override bool Running
+    public override bool IsRunning
     {
         get
         {
@@ -40,6 +38,7 @@ unsafe partial class UWPGame
                 {
                     uint processId = 0;
                     GetWindowThreadProcessId(window, &processId);
+
                     using ProcessHandle process = new(processId);
 
                     var error = GetApplicationUserModelId(process, &length, string2);
@@ -59,28 +58,45 @@ unsafe partial class UWPGame
 
 unsafe partial class UWPGame
 {
-    public override uint? Launch()
+    internal override ProcessHandle? LaunchProcess()
     {
-        if (Running) return Activate();
+        if (IsRunning)
+            return new(Activate());
 
         fixed (char* path = _path)
         {
             FileHandle? file = null;
             try
             {
-                using ProcessHandle process = new(Activate());
+                ProcessHandle process = new(Activate());
 
                 while (process.IsRunning(1))
                 {
                     file ??= FileHandle.Open(path);
-                    if (file?.Deleted ?? false)
-                        return process.ProcessId;
-                }
 
-                return null;
+                    if (file?.Deleted ?? false)
+                        return process;
+                }
             }
             finally { file?.Dispose(); }
+
+            return null;
         }
+    }
+}
+
+unsafe partial class UWPGame
+{
+    public override uint? Launch()
+    {
+        if (IsRunning)
+            return Activate();
+
+        if (LaunchProcess() is not ProcessHandle process)
+            return null;
+
+        using (process)
+            return process.ProcessId;
     }
 
     public override void Terminate()

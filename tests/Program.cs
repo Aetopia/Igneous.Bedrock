@@ -9,10 +9,6 @@ static class Program
     static void Main()
     {
         Method();
-       // var tasks = new Task[2];
-        //  tasks[0] = Task.Run(Method);
-        //tasks[1] = Task.Run(Method);
-        //  Task.WaitAll(tasks);
     }
 
     static void Method()

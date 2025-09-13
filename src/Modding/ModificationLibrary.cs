@@ -46,9 +46,9 @@ public sealed class ModificationLibrary
     /// Create an instance of a modification library.
     /// </summary>
 
-    /// <param name="path">
+    /// <param name="this">
     /// The path of the modification library.
     /// </param>
 
-    public static implicit operator ModificationLibrary(string path) => new(path);
+    public static implicit operator ModificationLibrary(string @this) => new(@this);
 }

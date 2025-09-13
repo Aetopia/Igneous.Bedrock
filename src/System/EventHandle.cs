@@ -1,7 +1,7 @@
 using System;
 using Windows.Win32.Foundation;
 using static Windows.Win32.PInvoke;
-namespace Igneous.Windows;
+namespace Igneous.System;
 
 sealed class EventHandle : IDisposable
 {

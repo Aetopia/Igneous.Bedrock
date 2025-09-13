@@ -24,7 +24,7 @@ public sealed partial class Metadata
     /// Queries the installed version of Minecraft: Bedrock Edition.
     /// </summary>
 
-    public string Version
+    public string GameVersion
     {
         get
         {
@@ -47,7 +47,7 @@ public sealed partial class Metadata
     /// Queries if Minecraft: Bedrock Edition is using the Game Development Kit.
     /// </summary>
 
-    public bool? GDK
+    public bool? IsUsingGDK
     {
         get
         {
