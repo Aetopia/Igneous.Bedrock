@@ -1,15 +1,23 @@
 using System;
+using System.Threading.Tasks;
 using System.Windows.Forms;
+using Igneous;
 
 static class Program
 {
     [STAThread]
     static void Main()
     {
-        Application.SetCompatibleTextRenderingDefault(false);
-        Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+        Method();
+       // var tasks = new Task[2];
+        //  tasks[0] = Task.Run(Method);
+        //tasks[1] = Task.Run(Method);
+        //  Task.WaitAll(tasks);
+    }
 
-        Application.EnableVisualStyles();
-        Application.Run(new Form());
+    static void Method()
+    {
+        Console.WriteLine($"Thread ID: {Environment.CurrentManagedThreadId}");
+        Minecraft.Preview.Launch();
     }
 }

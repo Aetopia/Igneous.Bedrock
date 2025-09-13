@@ -19,12 +19,12 @@ public unsafe sealed partial class Injector
 {
     readonly Game _game;
 
-    readonly bool uwp;
+    readonly bool _uwp;
 
     Injector(Game game)
     {
         _game = game;
-        uwp = game is UWPGame;
+        _uwp = game is UWPGame;
     }
 }
 
@@ -99,7 +99,7 @@ unsafe partial class Injector
 
             fixed (char* filename = library.Filename)
             {
-                if (uwp)
+                if (_uwp)
                 {
                     const SE_OBJECT_TYPE type = SE_OBJECT_TYPE.SE_FILE_OBJECT;
                     const OBJECT_SECURITY_INFORMATION information = OBJECT_SECURITY_INFORMATION.DACL_SECURITY_INFORMATION;

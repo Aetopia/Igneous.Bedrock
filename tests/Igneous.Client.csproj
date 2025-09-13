@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../src/Igneous.Bedrock.csproj" />
+    <ProjectReference Include="../src/Igneous.csproj" />
   </ItemGroup>
 
 </Project>

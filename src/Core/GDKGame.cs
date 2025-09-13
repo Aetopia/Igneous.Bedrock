@@ -1,13 +1,16 @@
-using Igneous.Windows;
 using Windows.Win32.Foundation;
 using Windows.Win32.Globalization;
 using static Windows.Win32.PInvoke;
 using static System.Environment;
 using static System.Environment.SpecialFolder;
+using Windows.Win32.System.RemoteDesktop;
 using System.IO;
 using System;
 
 namespace Igneous.Core;
+
+using Windows;
+
 
 unsafe sealed class GDKGame : Game
 {
@@ -18,7 +21,7 @@ unsafe sealed class GDKGame : Game
 
     readonly string _path;
 
-    WindowHandle? FindWindow()
+    WindowHandle? GetGameWindow()
     {
         fixed (char* @class = "Bedrock")
         fixed (char* string1 = _applicationUserModelId)
@@ -44,20 +47,56 @@ unsafe sealed class GDKGame : Game
         }
     }
 
-    public override bool Running => FindWindow() is not null;
+    uint GetBootstrapperProcessId()
+    {
+        fixed (char* string1 = _applicationUserModelId)
+        {
+            uint count = 0, level = 0;
+            WTS_PROCESS_INFOW* processes = null;
+            HANDLE server = HANDLE.WTS_CURRENT_SERVER_HANDLE;
+
+            uint length = APPLICATION_USER_MODEL_ID_MAX_LENGTH;
+            var string2 = stackalloc char[(int)length];
+
+            try
+            {
+                if (!WTSEnumerateProcessesEx(server, &level, WTS_CURRENT_SESSION, (PWSTR*)&processes, &count))
+                    return Activate();
+
+                for (uint index = 0; index < count; index++)
+                {
+                    var processId = processes[index].ProcessId;
+                    using ProcessHandle process = new(processId);
+
+                    var error = GetApplicationUserModelId(process, &length, string2);
+                    if (error is not WIN32_ERROR.ERROR_SUCCESS) continue;
+
+                    var result = CompareStringOrdinal(string1, -1, string2, -1, true);
+                    if (result is not COMPARESTRING_RESULT.CSTR_EQUAL) continue;
+
+                    return process.ProcessId;
+                }
+            }
+            finally { WTSFreeMemory(processes); }
+
+            return Activate();
+        }
+    }
+
+    public override bool Running => GetGameWindow() is not null;
 
     public override uint? Launch()
     {
-        if (FindWindow() is WindowHandle window)
+        if (GetGameWindow() is WindowHandle window)
         {
             window.SetForeground();
             return window.ProcessId;
         }
 
-        using ProcessHandle bootstrapper = new(Activate());
+        using ProcessHandle bootstrapper = new(GetBootstrapperProcessId());
         bootstrapper.WaitForExit();
 
-        if (FindWindow()?.OpenProcess() is not ProcessHandle process)
+        if (GetGameWindow()?.OpenProcess() is not ProcessHandle process)
             return null;
 
         using (process)
@@ -85,7 +124,7 @@ unsafe sealed class GDKGame : Game
 
     public override void Terminate()
     {
-        if (FindWindow() is not WindowHandle window)
+        if (GetGameWindow() is not WindowHandle window)
             return;
 
         using var process = window.OpenProcess();
